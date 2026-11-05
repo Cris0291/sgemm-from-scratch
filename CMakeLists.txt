@@ -5,9 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(gemm src/kernels/naive.cpp)
-
-target_include_directories(gemm PRIVATE ${PROJECT_SOURCE_DIR}/include)
-
-
+add_library(gemm_kernels src/kernels/naive.cpp)
+target_include_directories(gemm_kernels PUBLIC ${PROJECT_SOURCE_DIR}/include/gemm)
 
