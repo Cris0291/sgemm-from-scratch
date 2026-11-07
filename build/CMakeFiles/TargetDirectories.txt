@@ -1,3 +1,0 @@
-/home/cris0291/CppProjects/gemm-cpp/build/CMakeFiles/gemm_kernels.dir
-/home/cris0291/CppProjects/gemm-cpp/build/CMakeFiles/edit_cache.dir
-/home/cris0291/CppProjects/gemm-cpp/build/CMakeFiles/rebuild_cache.dir

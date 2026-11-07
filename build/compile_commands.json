@@ -1,8 +1,0 @@
-[
-{
-  "directory": "/home/cris0291/CppProjects/gemm-cpp/build",
-  "command": "/usr/bin/c++  -I/home/cris0291/CppProjects/gemm-cpp/include/gemm -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/gemm_kernels.dir/src/kernels/naive.cpp.o -c /home/cris0291/CppProjects/gemm-cpp/src/kernels/naive.cpp",
-  "file": "/home/cris0291/CppProjects/gemm-cpp/src/kernels/naive.cpp",
-  "output": "CMakeFiles/gemm_kernels.dir/src/kernels/naive.cpp.o"
-}
-]
