@@ -1,8 +1,8 @@
 #include "matrix.hpp"
-#include "gtest/gtest.h"
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <gtest/gtest.h>
 
 TEST(MatrixTests, PaddedCanariesTest) {
   // Arrange

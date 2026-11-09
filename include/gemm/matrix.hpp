@@ -10,7 +10,8 @@
 #include <utility>
 
 template <typename T>
-concept Float32Or64 = std::same_as<T, float> || std::same_as<T, double>;
+concept Float32Or64 =
+    std::same_as<T, float> || std::same_as<T, double> || std::same_as<T, int>;
 
 template <Float32Or64 FloatType> class MatrixHandler {
 private:
