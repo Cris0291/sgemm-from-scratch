@@ -26,7 +26,7 @@ add_executable(matrix_tests tests/test_matrix.cpp)
 target_link_libraries(matrix_tests PRIVATE gemm_headers GTest::gtest_main)
 
 add_executable(kernel_tests tests/test_kernel.cpp)
-target_link_libraries(kernel_tests PRIVATE gemm_headers GTest::gtest_main)
+target_link_libraries(kernel_tests PRIVATE gemm_kernels gemm_headers GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(matrix_tests)

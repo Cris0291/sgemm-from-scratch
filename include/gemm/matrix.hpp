@@ -22,7 +22,7 @@ private:
   std::size_t row;
   std::size_t column;
 
-  void init_matrix(std::pair<FloatType, FloatType> fill_policy) {
+  void init_real_matrix(std::pair<FloatType, FloatType> fill_policy) {
     FloatType *_matrix{matrix.get()};
     std::random_device rd;
     std::mt19937 gen(seed);
@@ -35,6 +35,25 @@ private:
       for (int j{}; j < column_padded; ++j)
         if (j >= column) {
           _matrix[i * column_padded + j] = canary_float_NaN;
+        } else {
+          _matrix[i * column_padded + j] = dist(gen);
+        }
+    }
+  }
+
+  void init_int_matrix(std::pair<int, int> fill_policy) {
+    FloatType *_matrix{matrix.get()};
+    std::random_device rd;
+    std::mt19937 gen(seed);
+    std::uniform_int_distribution<int> dist(fill_policy.first,
+                                            fill_policy.second);
+
+    int canary{};
+
+    for (int i{}; i < row; ++i) {
+      for (int j{}; j < column_padded; ++j)
+        if (j >= column) {
+          _matrix[i * column_padded + j] = canary;
         } else {
           _matrix[i * column_padded + j] = dist(gen);
         }
@@ -66,7 +85,11 @@ public:
     matrix.reset(static_cast<FloatType *>(_matrix));
     column_padded = column_multiple_up;
 
-    init_matrix(fill_policy);
+    if constexpr (std::is_same_v<FloatType, int>) {
+      init_int_matrix(fill_policy);
+    } else {
+      init_real_matrix(fill_policy);
+    }
   }
 
   MatrixHandler(const MatrixHandler &other) = delete;
