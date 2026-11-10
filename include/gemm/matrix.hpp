@@ -10,60 +10,56 @@
 #include <utility>
 
 template <typename T>
-concept Float32Or64 =
-    std::same_as<T, float> || std::same_as<T, double> || std::same_as<T, int>;
+concept Float32Or64 = std::same_as<T, float> || std::same_as<T, double>;
+
+enum class FillPolicy { IntegerValue, RealValue };
+
+template <Float32Or64 Float> struct AlignedDeleter {
+  void operator()(Float *ptr) { std::free(ptr); }
+};
 
 template <Float32Or64 FloatType> class MatrixHandler {
 private:
   static constexpr std::size_t CACHE_LINE_SIZE{64};
-  std::unique_ptr<FloatType> matrix;
+  std::unique_ptr<FloatType, AlignedDeleter<FloatType>> matrix;
   std::size_t column_padded{};
   int seed;
   std::size_t row;
   std::size_t column;
+  FillPolicy fill_policy;
 
-  void init_real_matrix(std::pair<FloatType, FloatType> fill_policy) {
+  void init_real_matrix(FillPolicy policy,
+                        std::pair<FloatType, FloatType> fill_range) {
     FloatType *_matrix{matrix.get()};
-    std::random_device rd;
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<FloatType> dist(fill_policy.first,
-                                                   fill_policy.second);
-
     FloatType canary_float_NaN{std::numeric_limits<FloatType>::quiet_NaN()};
+
+    auto dist{create_policy<policy>(fill_range.first, fill_range.second)};
 
     for (int i{}; i < row; ++i) {
       for (int j{}; j < column_padded; ++j)
         if (j >= column) {
           _matrix[i * column_padded + j] = canary_float_NaN;
         } else {
-          _matrix[i * column_padded + j] = dist(gen);
+          FloatType val{dist(gen)};
+          _matrix[i * column_padded + j] = val;
         }
     }
   }
 
-  void init_int_matrix(std::pair<int, int> fill_policy) {
-    FloatType *_matrix{matrix.get()};
-    std::random_device rd;
-    std::mt19937 gen(seed);
-    std::uniform_int_distribution<int> dist(fill_policy.first,
-                                            fill_policy.second);
-
-    int canary{};
-
-    for (int i{}; i < row; ++i) {
-      for (int j{}; j < column_padded; ++j)
-        if (j >= column) {
-          _matrix[i * column_padded + j] = canary;
-        } else {
-          _matrix[i * column_padded + j] = dist(gen);
-        }
+  template <FillPolicy T> auto create_policy(FloatType min, FloatType max) {
+    if constexpr (T == FillPolicy::RealValue) {
+      return std::uniform_real_distribution<FloatType>(min, max);
+    } else {
+      return std::uniform_int_distribution<int>(min, max);
     }
   }
 
 public:
   MatrixHandler(std::size_t _row, std::size_t _column, int _seed,
-                std::pair<FloatType, FloatType> fill_policy)
-      : row(_row), column(_column), seed(_seed) {
+                FillPolicy _fill_policy,
+                std::pair<FloatType, FloatType> fill_range)
+      : row(_row), column(_column), seed(_seed), fill_policy(_fill_policy) {
     if (row == 0 || column == 0)
       throw std::runtime_error("rows and columns cannot be zero");
 
@@ -85,11 +81,7 @@ public:
     matrix.reset(static_cast<FloatType *>(_matrix));
     column_padded = column_multiple_up;
 
-    if constexpr (std::is_same_v<FloatType, int>) {
-      init_int_matrix(fill_policy);
-    } else {
-      init_real_matrix(fill_policy);
-    }
+    init_matrix(fill_policy, fill_range);
   }
 
   MatrixHandler(const MatrixHandler &other) = delete;
