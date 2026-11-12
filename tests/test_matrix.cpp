@@ -6,7 +6,8 @@
 
 TEST(MatrixTests, PaddedCanariesTest) {
   // Arrange
-  MatrixHandler<float> matrix_handler{100, 100, 1000, {0.0, 100.0}};
+  MatrixHandler<float> matrix_handler{
+      100, 100, 1000, FillPolicy::RealValue, {0.0, 100.0}};
   const float *matrix{matrix_handler.data()};
   auto [row, column, column_padded]{matrix_handler.dimensions()};
 
@@ -24,7 +25,8 @@ TEST(MatrixTests, PaddedCanariesTest) {
 
 TEST(MatrixTests, PointerAligmentAndLdMultiple) {
   // Arrange
-  MatrixHandler<float> matrix_handler{100, 100, 1000, {0.0, 100.0}};
+  MatrixHandler<float> matrix_handler{
+      100, 100, 1000, FillPolicy::RealValue, {0.0, 100.0}};
   auto [row, column, column_padded]{matrix_handler.dimensions()};
   std::size_t CACHE_LINE_SIZE{64};
   std::size_t cacheline_total_elements{CACHE_LINE_SIZE / sizeof(float)};

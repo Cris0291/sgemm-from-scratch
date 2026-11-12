@@ -1,6 +1,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <new>
@@ -28,30 +29,32 @@ private:
   std::size_t column;
   FillPolicy fill_policy;
 
-  void init_real_matrix(FillPolicy policy,
-                        std::pair<FloatType, FloatType> fill_range) {
+  void init_matrix(FillPolicy policy,
+                   std::pair<FloatType, FloatType> fill_range) {
     FloatType *_matrix{matrix.get()};
     std::mt19937 gen(seed);
     FloatType canary_float_NaN{std::numeric_limits<FloatType>::quiet_NaN()};
 
-    auto dist{create_policy<policy>(fill_range.first, fill_range.second)};
+    auto func{create_policy(policy, fill_range.first, fill_range.second)};
 
     for (int i{}; i < row; ++i) {
       for (int j{}; j < column_padded; ++j)
         if (j >= column) {
           _matrix[i * column_padded + j] = canary_float_NaN;
         } else {
-          FloatType val{dist(gen)};
-          _matrix[i * column_padded + j] = val;
+          _matrix[i * column_padded + j] = func();
         }
     }
   }
 
-  template <FillPolicy T> auto create_policy(FloatType min, FloatType max) {
-    if constexpr (T == FillPolicy::RealValue) {
-      return std::uniform_real_distribution<FloatType>(min, max);
+  std::function<FloatType> create_policy(FillPolicy policy, std::mt19937 gen,
+                                         FloatType min, FloatType max) {
+    if (policy == FillPolicy::RealValue) {
+      std::uniform_real_distribution<FloatType> dist(min, max);
+      return [=]() mutable -> FloatType { return dist(gen); };
     } else {
-      return std::uniform_int_distribution<int>(min, max);
+      std::uniform_int_distribution<int> dist(min, max);
+      return [=]() mutable -> FloatType { return dist(gen); };
     }
   }
 
@@ -89,7 +92,14 @@ public:
   MatrixHandler &operator=(const MatrixHandler &other) = delete;
   MatrixHandler &operator=(MatrixHandler &&other) noexcept = default;
 
-  const FloatType *data() { return matrix.get(); }
+  const FloatType *data() const { return matrix.get(); }
+
+  FloatType *data() {
+    return const_cast<FloatType *>(
+        static_cast<const MatrixHandler &>(*this).matrix.get());
+  }
+
+  FloatType *data_non() { return matrix.get(); }
 
   std::tuple<std::size_t, std::size_t, std::size_t> dimensions() {
     return {row, column, column_padded};
