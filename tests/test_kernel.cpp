@@ -2,6 +2,7 @@
 #include "matrix.hpp"
 #include <cstddef>
 #include <gtest/gtest.h>
+#include <iostream>
 
 TEST(KernelTests, ExactTestSmallIntegers) {
   // Arrange
@@ -27,15 +28,15 @@ TEST(KernelTests, ExactTestSmallIntegers) {
 
   std::vector<float> copy_matrix_C{};
 
-  // Act
-  kernels::naive_float(matrix_A, matrix_B, matrix_C, M, N, K, column_padded_A,
-                       column_padded_B, column_padded_C);
-
   for (int i{}; i < row_C; ++i) {
     for (int j{}; j < column_padded_C; ++j) {
       copy_matrix_C.push_back(matrix_C[i * column_padded_C + j]);
     }
   }
+
+  // Act
+  kernels::naive_float(matrix_A, matrix_B, matrix_C, M, N, K, column_padded_A,
+                       column_padded_B, column_padded_C);
 
   // Assert
   for (int i{}; i < M; ++i) {
@@ -45,7 +46,7 @@ TEST(KernelTests, ExactTestSmallIntegers) {
         expected += matrix_A[i * column_padded_A + k] *
                     matrix_B[k * column_padded_B + j];
       }
-      EXPECT_EQ(matrix_C[i * column_padded_C + j], expected);
+      EXPECT_FLOAT_EQ(matrix_C[i * column_padded_C + j], expected);
     }
   }
 }

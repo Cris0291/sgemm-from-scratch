@@ -35,7 +35,7 @@ private:
     std::mt19937 gen(seed);
     FloatType canary_float_NaN{std::numeric_limits<FloatType>::quiet_NaN()};
 
-    auto func{create_policy(policy, fill_range.first, fill_range.second)};
+    auto func{create_policy(policy, gen, fill_range.first, fill_range.second)};
 
     for (int i{}; i < row; ++i) {
       for (int j{}; j < column_padded; ++j)
@@ -47,14 +47,14 @@ private:
     }
   }
 
-  std::function<FloatType> create_policy(FillPolicy policy, std::mt19937 gen,
-                                         FloatType min, FloatType max) {
+  std::function<FloatType()> create_policy(FillPolicy policy, std::mt19937 &gen,
+                                           FloatType min, FloatType max) {
     if (policy == FillPolicy::RealValue) {
       std::uniform_real_distribution<FloatType> dist(min, max);
-      return [=]() mutable -> FloatType { return dist(gen); };
+      return [&gen, dist]() mutable -> FloatType { return dist(gen); };
     } else {
       std::uniform_int_distribution<int> dist(min, max);
-      return [=]() mutable -> FloatType { return dist(gen); };
+      return [&gen, dist]() mutable -> FloatType { return dist(gen); };
     }
   }
 
