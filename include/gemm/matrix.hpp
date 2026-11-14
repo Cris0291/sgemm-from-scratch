@@ -15,8 +15,16 @@ concept Float32Or64 = std::same_as<T, float> || std::same_as<T, double>;
 
 enum class FillPolicy { IntegerValue, RealValue };
 
+enum class PaddingPolicy { FloatNaN, FloatZero, FloatSentinel };
+
 template <Float32Or64 Float> struct AlignedDeleter {
-  void operator()(Float *ptr) { std::free(ptr); }
+  void operator()(Float *ptr) const { std::free(ptr); }
+};
+
+struct MatrixDimensions {
+  std::size_t row;
+  std::size_t column;
+  std::size_t column_padded;
 };
 
 template <Float32Or64 FloatType> class MatrixHandler {
@@ -28,19 +36,22 @@ private:
   std::size_t row;
   std::size_t column;
   FillPolicy fill_policy;
+  PaddingPolicy padding_policy;
+  FloatType sentinel;
+  std::pair<FloatType, FloatType> fill_range;
 
-  void init_matrix(FillPolicy policy,
-                   std::pair<FloatType, FloatType> fill_range) {
+  void init_matrix() {
     FloatType *_matrix{matrix.get()};
     std::mt19937 gen(seed);
-    FloatType canary_float_NaN{std::numeric_limits<FloatType>::quiet_NaN()};
+    FloatType matrix_padding{get_matrix_padding()};
 
-    auto func{create_policy(policy, gen, fill_range.first, fill_range.second)};
+    auto func{
+        create_policy(fill_policy, gen, fill_range.first, fill_range.second)};
 
     for (int i{}; i < row; ++i) {
       for (int j{}; j < column_padded; ++j)
         if (j >= column) {
-          _matrix[i * column_padded + j] = canary_float_NaN;
+          _matrix[i * column_padded + j] = matrix_padding;
         } else {
           _matrix[i * column_padded + j] = func();
         }
@@ -58,11 +69,34 @@ private:
     }
   }
 
+  FloatType get_matrix_padding() {
+    FloatType res{};
+    switch (padding_policy) {
+    case PaddingPolicy::FloatNaN: {
+      FloatType canary_float_NaN{std::numeric_limits<FloatType>::quiet_NaN()};
+      res = canary_float_NaN;
+      break;
+    }
+    case PaddingPolicy::FloatZero: {
+      break;
+    }
+    case PaddingPolicy::FloatSentinel: {
+      res = sentinel;
+      break;
+    }
+    }
+
+    return res;
+  }
+
 public:
   MatrixHandler(std::size_t _row, std::size_t _column, int _seed,
                 FillPolicy _fill_policy,
-                std::pair<FloatType, FloatType> fill_range)
-      : row(_row), column(_column), seed(_seed), fill_policy(_fill_policy) {
+                std::pair<FloatType, FloatType> _fill_range,
+                PaddingPolicy _padding_policy, FloatType _sentinel = 0)
+      : row(_row), column(_column), seed(_seed), fill_policy(_fill_policy),
+        padding_policy(_padding_policy), sentinel(_sentinel),
+        fill_range(_fill_range) {
     if (row == 0 || column == 0)
       throw std::runtime_error("rows and columns cannot be zero");
 
@@ -84,7 +118,7 @@ public:
     matrix.reset(static_cast<FloatType *>(_matrix));
     column_padded = column_multiple_up;
 
-    init_matrix(fill_policy, fill_range);
+    init_matrix();
   }
 
   MatrixHandler(const MatrixHandler &other) = delete;
@@ -94,12 +128,7 @@ public:
 
   const FloatType *data() const { return matrix.get(); }
 
-  FloatType *data() {
-    return const_cast<FloatType *>(
-        static_cast<const MatrixHandler &>(*this).matrix.get());
-  }
-
-  FloatType *data_non() { return matrix.get(); }
+  FloatType *data() { return matrix.get(); }
 
   std::tuple<std::size_t, std::size_t, std::size_t> dimensions() {
     return {row, column, column_padded};
