@@ -130,7 +130,5 @@ public:
 
   FloatType *data() { return matrix.get(); }
 
-  std::tuple<std::size_t, std::size_t, std::size_t> dimensions() {
-    return {row, column, column_padded};
-  }
+  MatrixDimensions dimensions() { return {row, column, column_padded}; }
 };
