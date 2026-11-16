@@ -1,7 +1,9 @@
 #include "kernels.hpp"
 #include "matrix.hpp"
 #include <cstddef>
+#include <cstdlib>
 #include <gtest/gtest.h>
+#include <iostream>
 
 TEST(KernelTests, ExactTestSmallIntegers) {
   // Arrange
@@ -63,8 +65,13 @@ TEST(KernelTests, ExactTestSmallIntegers) {
   }
 }
 
-TEST(KernelTests, ToleranceFP64) {
+TEST(KernelTests, ToleranceFP64FixedTol) {
   // Arrange
+
+  double atol{1e-5};
+  double rtol{1e-4};
+  double total_tol{atol + rtol};
+
   std::size_t M{100};
   std::size_t N{70};
   std::size_t K{50};
@@ -89,12 +96,30 @@ TEST(KernelTests, ToleranceFP64) {
 
   for (int i{}; i < M; ++i) {
     for (int j{}; j < N; ++j) {
-      float expected{matrix_C[i * column_padded_C + j]};
+      double expected{matrix_C[i * column_padded_C + j]};
       for (int k{}; k < K; ++k) {
-        expected += matrix_A[i * column_padded_A + k] *
-                    matrix_B[k * column_padded_B + j];
+        expected += static_cast<double>(matrix_A[i * column_padded_A + k]) *
+                    static_cast<double>(matrix_B[k * column_padded_B + j]);
       }
       fp64_matrix_C.push_back(expected);
+    }
+  }
+
+  // Act
+  kernels::naive_float(matrix_A, matrix_B, matrix_C, M, N, K, column_padded_A,
+                       column_padded_B, column_padded_C);
+
+  // Assert
+  for (int i{}; i < row_C; ++i) {
+    for (int j{}; j < column_padded_C; ++j) {
+      if (j < column_C) {
+        std::cout << "c 32 : " << matrix_C[i * column_padded_C + j]
+                  << "c fp64 : " << fp64_matrix_C[i * column_padded_C + j]
+                  << "\n";
+        auto abs_res{std::abs(matrix_C[i * column_padded_C + j] -
+                              fp64_matrix_C[i * column_padded_C + j])};
+        EXPECT_LE(std::abs(abs_res), total_tol);
+      }
     }
   }
 }
