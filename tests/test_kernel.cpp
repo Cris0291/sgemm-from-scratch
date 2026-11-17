@@ -1,11 +1,14 @@
 #include "kernels.hpp"
 #include "matrix.hpp"
+#include "gtest/gtest.h"
 #include <cstddef>
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include <iostream>
 
-TEST(KernelTests, ExactTestSmallIntegers) {
+class KernelTests : public ::testing::TestWithParam<int> {};
+
+TEST_P(KernelTests, ExactTestSmallIntegers) {
   // Arrange
   std::size_t M{100};
   std::size_t N{70};
@@ -65,7 +68,7 @@ TEST(KernelTests, ExactTestSmallIntegers) {
   }
 }
 
-TEST(KernelTests, ToleranceFP64FixedTol) {
+TEST_P(KernelTests, ToleranceFP64FixedTol) {
   // Arrange
 
   double atol{1e-5};
@@ -94,14 +97,20 @@ TEST(KernelTests, ToleranceFP64FixedTol) {
 
   std::vector<double> fp64_matrix_C{};
 
+  for (int i{}; i < row_C; ++i) {
+    for (int j{}; j < column_padded_C; ++j) {
+      fp64_matrix_C.push_back(
+          static_cast<double>(matrix_C[i * column_padded_C + j]));
+    }
+  }
+
   for (int i{}; i < M; ++i) {
     for (int j{}; j < N; ++j) {
-      double expected{matrix_C[i * column_padded_C + j]};
       for (int k{}; k < K; ++k) {
-        expected += static_cast<double>(matrix_A[i * column_padded_A + k]) *
-                    static_cast<double>(matrix_B[k * column_padded_B + j]);
+        fp64_matrix_C[i * column_padded_C + j] +=
+            static_cast<double>(matrix_A[i * column_padded_A + k]) *
+            static_cast<double>(matrix_B[k * column_padded_B + j]);
       }
-      fp64_matrix_C.push_back(expected);
     }
   }
 
@@ -122,4 +131,39 @@ TEST(KernelTests, ToleranceFP64FixedTol) {
       }
     }
   }
+}
+
+TEST_P(KernelTests, SubBlock) {
+  // Arrange
+  std::size_t M{100};
+  std::size_t N{70};
+  std::size_t K{50};
+
+  MatrixHandler<float> matrix_handler_A{
+      M, K, 1000, FillPolicy::IntegerValue, {1, 4}, PaddingPolicy::FloatZero};
+  MatrixHandler<float> matrix_handler_B{
+      K, N, 700, FillPolicy::IntegerValue, {1, 4}, PaddingPolicy::FloatZero};
+  MatrixHandler<float> matrix_handler_C{
+      M, N, 10, FillPolicy::IntegerValue, {2, 7}, PaddingPolicy::FloatZero};
+
+  const float *matrix_A{matrix_handler_A.data()};
+  auto [row_A, column_A, column_padded_A]{matrix_handler_A.dimensions()};
+
+  const float *matrix_B{matrix_handler_B.data()};
+  auto [row_B, column_B, column_padded_B]{matrix_handler_B.dimensions()};
+
+  float *matrix_C{matrix_handler_C.data()};
+  auto [row_C, column_C, column_padded_C]{matrix_handler_C.dimensions()};
+
+  std::vector<float> copy_matrix_C{};
+
+  for (int i{}; i < row_C; ++i) {
+    for (int j{}; j < column_padded_C; ++j) {
+      copy_matrix_C.push_back(matrix_C[i * column_padded_C + j]);
+    }
+  }
+
+  // Act
+  kernels::naive_float(matrix_A, matrix_B, matrix_C, M, N, K, column_padded_A,
+                       column_padded_B, column_padded_C);
 }
