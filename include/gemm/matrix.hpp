@@ -131,4 +131,21 @@ public:
   FloatType *data() { return matrix.get(); }
 
   MatrixDimensions dimensions() { return {row, column, column_padded}; }
+
+  void create_submatrix(std::size_t init_x, std::size_t init_y,
+                        std::size_t block_x, std::size_t block_y) {
+    if (init_x > row || init_y > column) {
+      throw std::out_of_range("new initial indexes are out of range");
+    }
+
+    if (block_x == 0 || block_x > row) {
+      throw std::out_of_range(
+          "new row is either zero or is outside the bounds");
+    }
+
+    if (block_y == 0 || block_y > row) {
+      throw std::out_of_range(
+          "new row is either zero or is outside the bounds");
+    }
+  }
 };
