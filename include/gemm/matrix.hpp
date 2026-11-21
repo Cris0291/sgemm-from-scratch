@@ -94,16 +94,9 @@ private:
     // check bounds, since row, col and both blocks are totals representing the
     // number of rows and cols and x and y are positions the units does not
     // match we could never have a block x equal to zero but x could be zero
-    if ((init_x + block_x) >= row) {
-      std::size_t x_size{row - 1};
-      std::size_t x_diff{x_size - init_x};
-      block_x = x_diff + 1;
-    }
-
-    if ((init_y + block_y) >= column) {
-      std::size_t y_size{column - 1};
-      std::size_t y_diff{y_size - init_y};
-      block_y = y_diff + 1;
+    if ((init_x + block_x) > row || (init_y + block_y) > column) {
+      throw std::out_of_range("either the requested rows or columns exceed the "
+                              "total size of the matrix");
     }
   }
 
@@ -149,31 +142,6 @@ public:
   FloatType *data() { return matrix.get(); }
 
   MatrixDimensions dimensions() { return {row, column, column_padded}; }
-
-  std::tuple<const FloatType *, std::size_t, std::size_t>
-  create_submatrix(std::size_t init_x, std::size_t init_y, std::size_t block_x,
-                   std::size_t block_y) const {
-    if (init_x >= row || init_y >= column) {
-      throw std::out_of_range("new initial indexes are out of range");
-    }
-
-    if (block_x == 0 || block_x > row) {
-      throw std::out_of_range(
-          "new row is either zero or is outside the bounds");
-    }
-
-    if (block_y == 0 || block_y > column) {
-      throw std::out_of_range(
-          "new row is either zero or is outside the bounds");
-    }
-
-    submatrix_boundry(init_x, init_y, block_x, block_y);
-
-    const FloatType *ptr{data()};
-    ptr += (init_x * column_padded + init_y);
-
-    return {ptr, block_x, block_y};
-  }
 
   std::tuple<FloatType *, std::size_t, std::size_t>
   create_submatrix(std::size_t init_x, std::size_t init_y, std::size_t block_x,
