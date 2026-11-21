@@ -8,7 +8,7 @@
 
 class KernelTests : public ::testing::TestWithParam<int> {};
 
-TEST_P(KernelTests, ExactTestSmallIntegers) {
+TEST(KernelTests, ExactTestSmallIntegers) {
   // Arrange
   std::size_t M{100};
   std::size_t N{70};
@@ -68,7 +68,7 @@ TEST_P(KernelTests, ExactTestSmallIntegers) {
   }
 }
 
-TEST_P(KernelTests, ToleranceFP64FixedTol) {
+TEST(KernelTests, ToleranceFP64FixedTol) {
   // Arrange
 
   double atol{1e-5};
@@ -133,11 +133,24 @@ TEST_P(KernelTests, ToleranceFP64FixedTol) {
   }
 }
 
-TEST_P(KernelTests, SubBlock) {
+TEST(KernelTests, SubBlock) {
   // Arrange
-  std::size_t M{100};
-  std::size_t N{70};
-  std::size_t K{50};
+  std::size_t M{10};
+  std::size_t N{10};
+  std::size_t K{10};
+
+  std::size_t sub_M{5};
+  std::size_t sub_N{5};
+  std::size_t sub_K{5};
+
+  std::size_t init_x_A{5};
+  std::size_t init_y_A{5};
+
+  std::size_t init_x_B{5};
+  std::size_t init_y_B{5};
+
+  std::size_t init_x_C{5};
+  std::size_t init_y_C{5};
 
   MatrixHandler<float> matrix_handler_A{
       M, K, 1000, FillPolicy::IntegerValue, {1, 4}, PaddingPolicy::FloatZero};
@@ -163,7 +176,35 @@ TEST_P(KernelTests, SubBlock) {
     }
   }
 
+  auto [sub_matrix_A, sub_row_A, sub_column_A]{
+      matrix_handler_A.create_submatrix(init_x_A, init_y_A, sub_M, sub_K)};
+
+  auto [sub_matrix_B, sub_row_B, sub_column_B]{
+      matrix_handler_B.create_submatrix(init_x_B, init_y_B, sub_K, sub_N)};
+
+  auto [sub_matrix_C, sub_row_C, sub_column_C]{
+      matrix_handler_C.create_submatrix(init_x_C, init_y_C, sub_M, sub_N)};
+
   // Act
+  kernels::naive_float(sub_matrix_A, sub_matrix_B, sub_matrix_C, sub_M, sub_N,
+                       sub_K, column_padded_A, column_padded_B,
+                       column_padded_C);
+
   kernels::naive_float(matrix_A, matrix_B, matrix_C, M, N, K, column_padded_A,
                        column_padded_B, column_padded_C);
+
+  // Assert
+  std::cout << "sub row c : " << sub_row_C << "sub col c : " << sub_column_C
+            << "init x c : " << init_x_C << "init y c : " << init_y_C << "\n";
+  for (int i{}; i < row_C; ++i) {
+    for (int j{}; j < column_padded_C; ++j) {
+      // if ((i >= init_x_C && i <= init_x_C + sub_row_C) &&
+      //   (j >= init_y_C && j <= init_y_C + sub_column_C)) {
+      // EXPECT_EQ(sub_matrix_C[i * column_padded_C + j],
+      //         copy_matrix_C[i * column_padded_C + j]);
+      //}
+      std::cout << "original :" << matrix_C[i * column_padded_C + j]
+                << "sub : " << sub_matrix_C[i * column_padded_C + j] << "\n";
+    }
+  }
 }
