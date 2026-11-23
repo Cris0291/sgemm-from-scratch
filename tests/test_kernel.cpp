@@ -145,10 +145,10 @@ TEST(KernelTests, SubBlock) {
   std::size_t sub_K{3};
 
   std::size_t init_x_A{2};
-  std::size_t init_y_A{2};
+  std::size_t init_y_A{3};
 
-  std::size_t init_x_B{3};
-  std::size_t init_y_B{3};
+  std::size_t init_x_B{2};
+  std::size_t init_y_B{1};
 
   std::size_t init_x_C{3};
   std::size_t init_y_C{1};
@@ -198,16 +198,24 @@ TEST(KernelTests, SubBlock) {
   for (int i{}; i < row_C; ++i) {
     for (int j{}; j < column_padded_C; ++j) {
       if (j >= column_C) {
-        EXPECT_TRUE(std::isnan(copy_matrix_C[i * column_padded_C + j]));
-      } else {
-        if ((i >= init_x_C && i < init_x_C + sub_row_C) &&
-            (j >= init_y_C && j < init_y_C + sub_column_C)) {
-          EXPECT_EQ(copy_matrix_C[i * column_padded_C + j],
-                    sub_matrix_C[i * column_padded_C + j]);
-        } else {
-          EXPECT_NE(matrix_C[i * column_padded_C + j],
-                    sub_matrix_C[i * column_padded_C + j]);
+        EXPECT_TRUE(std::isnan(matrix_C[i * column_padded_C + j]));
+      }
+    }
+  }
+
+  for (int i{}; i < M; ++i) {
+    for (int j{}; j < N; ++j) {
+      if ((i >= init_x_C && i < init_x_C + sub_row_C) &&
+          (j >= init_y_C && j < init_y_C + sub_column_C)) {
+        float expected{copy_matrix_C[i * column_padded_C + j]};
+        for (int k{}; k < sub_K; ++k) {
+          expected += matrix_A[i * column_padded_A + k] *
+                      matrix_B[k * column_padded_B + j];
         }
+        EXPECT_EQ(matrix_C[i * column_padded_C + j], expected);
+      } else {
+        EXPECT_EQ(copy_matrix_C[i * column_padded_C + j],
+                  matrix_C[i * column_padded_C + j]);
       }
     }
   }
