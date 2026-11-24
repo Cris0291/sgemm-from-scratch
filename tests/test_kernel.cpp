@@ -153,15 +153,18 @@ TEST(KernelTests, SubBlock) {
   std::size_t init_x_C{3};
   std::size_t init_y_C{1};
 
-  MatrixHandler<float> matrix_handler_A{
-      M, K, 1000, FillPolicy::IntegerValue, {1, 4}, PaddingPolicy::FloatNaN,
-  };
-  MatrixHandler<float> matrix_handler_B{
-      K, N, 700, FillPolicy::IntegerValue, {1, 4}, PaddingPolicy::FloatNaN,
-  };
-  MatrixHandler<float> matrix_handler_C{
-      M, N, 10, FillPolicy::IntegerValue, {2, 7}, PaddingPolicy::FloatNaN,
-  };
+  MatrixHandler<float> matrix_handler_A{M,      K,
+                                        1000,   FillPolicy::IntegerValue,
+                                        {1, 4}, PaddingPolicy::FloatSentinel,
+                                        1000};
+  MatrixHandler<float> matrix_handler_B{K,      N,
+                                        700,    FillPolicy::IntegerValue,
+                                        {1, 4}, PaddingPolicy::FloatSentinel,
+                                        1000};
+  MatrixHandler<float> matrix_handler_C{M,      N,
+                                        10,     FillPolicy::IntegerValue,
+                                        {2, 7}, PaddingPolicy::FloatSentinel,
+                                        1000};
 
   const float *matrix_A{matrix_handler_A.data()};
   auto [row_A, column_A, column_padded_A]{matrix_handler_A.dimensions()};
@@ -198,21 +201,31 @@ TEST(KernelTests, SubBlock) {
   for (int i{}; i < row_C; ++i) {
     for (int j{}; j < column_padded_C; ++j) {
       if (j >= column_C) {
-        EXPECT_TRUE(std::isnan(matrix_C[i * column_padded_C + j]));
+        EXPECT_EQ(matrix_C[i * column_padded_C + j], 1000);
       }
     }
   }
 
-  for (int i{}; i < M; ++i) {
-    for (int j{}; j < N; ++j) {
+  for (std::size_t i{}; i < M; ++i) {
+    for (std::size_t j{}; j < N; ++j) {
       if ((i >= init_x_C && i < init_x_C + sub_row_C) &&
           (j >= init_y_C && j < init_y_C + sub_column_C)) {
         float expected{copy_matrix_C[i * column_padded_C + j]};
-        for (int k{}; k < sub_K; ++k) {
-          expected += matrix_A[i * column_padded_A + k] *
-                      matrix_B[k * column_padded_B + j];
+        std::size_t sub_i_C{i - init_x_C};
+        std::size_t sub_j_C{j - init_y_C};
+        std::size_t sub_i_A{i - init_x_C + init_x_A};
+        std::size_t sub_j_A{};
+        std::size_t sub_i_B{};
+        std::size_t sub_j_B{j - init_y_C + init_y_B};
+
+        for (std::size_t k{}; k < sub_K; ++k) {
+          sub_j_A = init_y_A + k;
+          sub_i_B = init_x_B + k;
+
+          expected += matrix_A[sub_i_A * column_padded_A + sub_j_A] *
+                      matrix_B[sub_i_B * column_padded_B + sub_j_B];
         }
-        EXPECT_EQ(matrix_C[i * column_padded_C + j], expected);
+        EXPECT_EQ(sub_matrix_C[sub_i_C * column_padded_C + sub_j_C], expected);
       } else {
         EXPECT_EQ(copy_matrix_C[i * column_padded_C + j],
                   matrix_C[i * column_padded_C + j]);
