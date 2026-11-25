@@ -6,8 +6,12 @@
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include <iostream>
+#include <tuple>
 
-class KernelTests : public ::testing::TestWithParam<int> {};
+template <typename T>
+class KernelTests : public ::testing::TestWithParam<
+                        std::tuple<kernels::KernelEntry<T>, kernels::Shapes>> {
+};
 
 TEST(KernelTests, ExactTestSmallIntegers) {
   // Arrange
@@ -233,3 +237,5 @@ TEST(KernelTests, SubBlock) {
     }
   }
 }
+
+INSTANTIATE_TEST_SUITE_P(prefix, test_suite_name, ...)
