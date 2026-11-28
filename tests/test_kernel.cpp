@@ -1,19 +1,22 @@
 #include "kernels.hpp"
 #include "matrix.hpp"
+#include "registry.hpp"
 #include "gtest/gtest.h"
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include <iostream>
-#include <tuple>
+#include <string>
 
 template <typename T>
-class KernelTests : public ::testing::TestWithParam<
-                        std::tuple<kernels::KernelEntry<T>, kernels::Shapes>> {
-};
+class KernelTests
+    : public ::testing::TestWithParam<std::tuple<KernelEntry<T>, Shapes>> {};
 
-TEST(KernelTests, ExactTestSmallIntegers) {
+using KernelTestsFloat = KernelTests<float>;
+using KernelTestsDouble = KernelTests<double>;
+
+TEST_P(KernelTestsFloat, ExactTestSmallIntegers) {
   // Arrange
   std::size_t M{100};
   std::size_t N{70};
@@ -73,7 +76,7 @@ TEST(KernelTests, ExactTestSmallIntegers) {
   }
 }
 
-TEST(KernelTests, ToleranceFP64FixedTol) {
+TEST_P(KernelTestsFloat, ToleranceFP64FixedTol) {
   // Arrange
 
   double atol{1e-5};
@@ -138,7 +141,7 @@ TEST(KernelTests, ToleranceFP64FixedTol) {
   }
 }
 
-TEST(KernelTests, SubBlock) {
+TEST_P(KernelTestsFloat, SubBlock) {
   // Arrange
   std::size_t M{15};
   std::size_t N{9};
@@ -238,4 +241,28 @@ TEST(KernelTests, SubBlock) {
   }
 }
 
-INSTANTIATE_TEST_SUITE_P(prefix, test_suite_name, ...)
+INSTANTIATE_TEST_SUITE_P(
+    AllKernels, KernelTestsFloat,
+    ::testing::Combine(::testing::ValuesIn(get_kernels_float()),
+                       ::testing::ValuesIn(get_shapes())),
+    [](const auto &info) {
+      auto test{info.param};
+      KernelEntry<float> kernel_float{std::get<0>(info.param)};
+      Shapes shape{std::get<1>(info.param)};
+
+      return kernel_float.name + "_" + std::to_string(shape.M) + "x" +
+             std::to_string(shape.N) + "x" + std::to_string(shape.K);
+    });
+
+INSTANTIATE_TEST_SUITE_P(
+    AllKernels, KernelTestsDouble,
+    ::testing::Combine(::testing::ValuesIn(get_kernels_float()),
+                       ::testing::ValuesIn(get_shapes())),
+    [](const auto &info) {
+      auto test{info.param};
+      KernelEntry<double> kernel_float{std::get<0>(info.param)};
+      Shapes shape{std::get<1>(info.param)};
+
+      return kernel_float.name + "_" + std::to_string(shape.M) + "x" +
+             std::to_string(shape.N) + "x" + std::to_string(shape.K);
+    });

@@ -1,5 +1,6 @@
 #include "kernels.hpp"
 #include <cstddef>
+#include <span>
 #include <string>
 
 template <typename T>
@@ -24,3 +25,13 @@ constexpr KernelEntry<float> kernels_double[]{
     {"naive", &kernels::naive<float>}};
 
 constexpr Shapes shapes[]{{20, 20, 20}};
+
+inline std::span<const KernelEntry<float>> get_kernels_float() {
+  return kernels_float;
+}
+
+inline std::span<const KernelEntry<float>> get_kernels_double() {
+  return kernels_double;
+}
+
+inline std::span<const Shapes> get_shapes() { return shapes; }
